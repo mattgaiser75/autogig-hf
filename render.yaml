@@ -1,3 +1,4 @@
+
 services:
   - type: web
     name: autogig-api
@@ -30,10 +31,6 @@ services:
       npm run build
     startCommand: npm run start
     envVars:
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: autogig-api
-          property: url
       - key: PORT
         value: 3000
+      # We'll set NEXT_PUBLIC_API_URL in the Render dashboard after the API is up
