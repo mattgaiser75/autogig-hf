@@ -45,4 +45,4 @@ services:
         value: "3000"
       # IMPORTANT: after autogig-api is deployed, replace the value below with your API's public URL
       - key: NEXT_PUBLIC_API_URL
-        value: "https://<YOUR-API-SERVICE>.onrender.com"
+  value: "https://<YOUR-API-SERVICE>.onrender.com"
