@@ -1,8 +1,9 @@
-
 services:
+  # ---------- API (FastAPI) ----------
   - type: web
     name: autogig-api
     env: python
+    plan: free
     rootDir: api
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
@@ -13,6 +14,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+
+      # LLM (Hugging Face)
       - key: LLM_PROVIDER
         value: "huggingface"
       - key: HUGGINGFACE_API_BASE
@@ -22,15 +25,24 @@ services:
       - key: LLM_DEFAULT_MODEL
         value: "microsoft/Phi-3-mini-4k-instruct"
 
+  # ---------- Web (Next.js) ----------
   - type: web
     name: autogig-web
     env: node
+    plan: free
     rootDir: web
     buildCommand: |
-      npm ci
+      npm ci || npm install
       npm run build
-    startCommand: npm run start
+    # Start Next on the port Render provides
+    startCommand: node node_modules/next/dist/bin/next start -p $PORT
     envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
       - key: PORT
-        value: 3000
-      # We'll set NEXT_PUBLIC_API_URL in the Render dashboard after the API is up
+        value: "3000"
+      # IMPORTANT: after autogig-api is deployed, replace the value below with your API's public URL
+      - key: NEXT_PUBLIC_API_URL
+        value: "https://<YOUR-API-SERVICE>.onrender.com"
