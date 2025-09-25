@@ -1,5 +1,4 @@
-      - key: HF_API_BASE
-  services:
+services:
   # ---------- API (FastAPI) ----------
   - type: web
     name: autogig-api
@@ -19,3 +18,29 @@
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
+
+      # LLM (Hugging Face)
+      - key: LLM_PROVIDER
+        value: "huggingface"
+      - key: HUGGINGFACE_API_BASE
+        value: "https://api-inference.huggingface.co/models"
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: LLM_DEFAULT_MODEL
+        value: "microsoft/Phi-3-mini-4k-instruct"
+
+  # ---------- Worker (Celery) ----------
+  - type: worker
+    name: autogig-worker
+    env: python
+    rootDir: api
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: celery -A app.celery_app worker --loglevel=INFO
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key
