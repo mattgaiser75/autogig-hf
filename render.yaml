@@ -1,25 +1,17 @@
 services:
-  # ---------- API (FastAPI) ----------
   - type: web
     name: autogig-api
     env: python
     rootDir: api
-    plan: starter
-    buildCommand: |
-      pip install -r requirements.txt
-    startCommand: |
-      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
         sync: false
       - key: JWT_SECRET
-        generateValue: true
-      - key: ENCRYPTION_KEY
-        generateValue: true
-
-      # LLM (Hugging Face)
+        sync: false
       - key: LLM_PROVIDER
         value: "huggingface"
       - key: HUGGINGFACE_API_BASE
@@ -29,18 +21,19 @@ services:
       - key: LLM_DEFAULT_MODEL
         value: "microsoft/Phi-3-mini-4k-instruct"
 
-  # ---------- Worker (Celery) ----------
-  - type: worker
-    name: autogig-worker
-    env: python
-    rootDir: api
-    plan: starter
+  - type: web
+    name: autogig-web
+    env: node
+    rootDir: web
     buildCommand: |
-      pip install -r requirements.txt
-    startCommand: celery -A app.celery_app worker --loglevel=INFO
+      npm ci
+      npm run build
+    startCommand: npm run start
     envVars:
-      - key: DATABASE_URL
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: autogig-api
+          property: url
+      - key: PORT
+        value: 3000
