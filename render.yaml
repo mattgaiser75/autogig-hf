@@ -1,0 +1,113 @@
+# Multi-service Render setup for the Enhanced Freelance Automation Platform
+# Create managed Postgres + Redis in Render and set DATABASE_URL and REDIS_URL accordingly.
+
+services:
+  - type: web
+    name: autogig-web
+    env: node
+    rootDir: web
+    plan: starter
+    buildCommand: |
+      npm ci
+      npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: autogig-api
+          property: url
+      - key: PORT
+        value: 3000
+
+  - type: web
+    name: autogig-api
+    env: python
+    rootDir: api
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: HF_API_TOKEN
+        sync: false
+      - key: HF_API_BASE
+        value: "https://api-inference.huggingface.co/models"
+      - key: LLM_PROVIDER
+        value: "huggingface"
+      - key: LLM_DEFAULT_MODEL
+        value: "microsoft/Phi-3-mini-4k-instruct"
+      - key: LLM_PROVIDER
+        value: "huggingface"
+      - key: OPENAI_API_BASE
+        value: "https://api.openai.com/v1"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_BASE
+        value: "https://openrouter.ai/api/v1"
+      - key: OPENROUTER_API_KEY
+        sync: false
+
+- key: HUGGINGFACE_API_BASE
+  value: "https://api-inference.huggingface.co/models"
+- key: HUGGINGFACE_API_KEY
+  sync: false
+- key: LLM_DEFAULT_MODEL
+  value: "microsoft/Phi-3-mini-4k-instruct"
+
+  - type: worker
+    name: autogig-worker
+    env: python
+    rootDir: api
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: celery -A app.celery_app worker --loglevel=INFO
+    envVars:
+      - key: LLM_PROVIDER
+        value: "huggingface"
+      - key: HF_API_TOKEN
+        sync: false
+      - key: HF_API_BASE
+        value: "https://api-inference.huggingface.co"
+      - key: LLM_DEFAULT_MODEL
+        value: "microsoft/Phi-3-mini-4k-instruct"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+
+  - type: worker
+    name: autogig-beat
+    env: python
+    rootDir: api
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: celery -A app.celery_app beat --loglevel=INFO
+    envVars:
+      - key: LLM_PROVIDER
+        value: "huggingface"
+      - key: HF_API_TOKEN
+        sync: false
+      - key: HF_API_BASE
+        value: "https://api-inference.huggingface.co"
+      - key: LLM_DEFAULT_MODEL
+        value: "microsoft/Phi-3-mini-4k-instruct"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false

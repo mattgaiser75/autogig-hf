@@ -1,0 +1,57 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: autogig
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  api:
+    build: ./api
+    env_file: .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/autogig
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: change-me-super-secret
+    depends_on: [postgres, redis]
+    ports: ["8000:8000"]
+
+  worker:
+    build: ./api
+    command: celery -A app.celery_app worker --loglevel=INFO
+    env_file: .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/autogig
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: change-me-super-secret
+    depends_on: [api, redis]
+
+  beat:
+    build: ./api
+    command: celery -A app.celery_app beat --loglevel=INFO
+    env_file: .env.example
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/autogig
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: change-me-super-secret
+    depends_on: [api, redis]
+
+  web:
+    build: ./web
+    env_file: .env.example
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      PORT: 3000
+    depends_on: [api]
+    ports: ["3000:3000"]
+
+volumes:
+  pgdata:
